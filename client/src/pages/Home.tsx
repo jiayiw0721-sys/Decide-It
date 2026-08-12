@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { getDecisionReason, pickOption, type ChoiceOption, type DecisionMode, type Preference } from "@shared/decision";
+import { filterableTemplates, getFilteredStarterOptions, getFilterLabels, type TemplateKey } from "@shared/templateFilters";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -29,12 +30,13 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-type Screen = "today" | "editor" | "deciding" | "result" | "records";
+type Screen = "today" | "filters" | "editor" | "deciding" | "result" | "records";
 
 type Draft = {
   question: string;
   options: ChoiceOption[];
   mode: DecisionMode;
+  filterLabels?: string[];
 };
 
 type FinalDecision = {
@@ -42,10 +44,10 @@ type FinalDecision = {
   reason: string;
 };
 
-const templates: Array<{ name: string; question: string; icon: typeof UtensilsCrossed; options: string[] }> = [
-  { name: "吃什么", question: "今天吃什么？", icon: UtensilsCrossed, options: ["清爽沙拉", "热汤面", "家常饭"] },
-  { name: "看什么", question: "今晚看什么？", icon: Play, options: ["一部电影", "一集剧", "读几页书"] },
-  { name: "去哪里", question: "今天去哪里？", icon: MapPin, options: ["去公园走走", "找家咖啡馆", "留在家里"] },
+const templates: Array<{ name: string; question: string; icon: typeof UtensilsCrossed; options: string[]; filterKey?: TemplateKey }> = [
+  { name: "吃什么", question: "今天吃什么？", icon: UtensilsCrossed, options: ["清爽沙拉", "热汤面", "家常饭"], filterKey: "food" },
+  { name: "看什么", question: "今晚看什么？", icon: Play, options: ["一部电影", "一集剧", "读几页书"], filterKey: "watch" },
+  { name: "去哪里", question: "今天去哪里？", icon: MapPin, options: ["去公园走走", "找家咖啡馆", "留在家里"], filterKey: "place" },
   { name: "先做什么", question: "现在先做什么？", icon: Lightbulb, options: ["完成最重要的一件事", "整理十分钟", "先休息一下"] },
 ];
 
@@ -76,14 +78,61 @@ function displayDate(value: Date | string) {
   return new Date(value).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function getInitialTemplateFromUrl(): TemplateKey | null {
+  const value = new URLSearchParams(window.location.search).get("template");
+  return value === "food" || value === "watch" || value === "place" ? value : null;
+}
+
+function getInitialFilterValues(): string[] {
+  return (new URLSearchParams(window.location.search).get("filters") ?? "").split(",").filter(Boolean);
+}
+
+function isEditorPreview(): boolean {
+  return new URLSearchParams(window.location.search).get("stage") === "editor";
+}
+
 export default function Home() {
   const { user, loading, isAuthenticated } = useAuth();
   const utils = trpc.useUtils();
-  const [screen, setScreen] = useState<Screen>("today");
-  const [draft, setDraft] = useState<Draft>(() => makeDraft());
+  const [screen, setScreen] = useState<Screen>(() => getInitialTemplateFromUrl() ? (isEditorPreview() ? "editor" : "filters") : "today");
+  const [draft, setDraft] = useState<Draft>(() => {
+    const templateKey = getInitialTemplateFromUrl();
+    const selectedValues = getInitialFilterValues();
+    if (!templateKey || !isEditorPreview()) return makeDraft();
+    const template = filterableTemplates[templateKey];
+    return { question: template.question, options: getFilteredStarterOptions(template, selectedValues), mode: "fair", filterLabels: getFilterLabels(template, selectedValues) };
+  });
   const [result, setResult] = useState<FinalDecision | null>(null);
   const [redraws, setRedraws] = useState(0);
   const [previousOptionId, setPreviousOptionId] = useState<string | undefined>();
+  const [activeTemplate, setActiveTemplate] = useState<TemplateKey | null>(() => getInitialTemplateFromUrl());
+  const [activeFilters, setActiveFilters] = useState<string[]>(() => getInitialFilterValues());
+
+  const chooseFilterValue = (filterId: string, valueId: string) => {
+    if (!activeTemplate) return;
+    const filter = filterableTemplates[activeTemplate].filters.find((item) => item.id === filterId);
+    if (!filter) return;
+    const groupValueIds = filter.values.map((value) => value.id);
+    setActiveFilters((current) => current.includes(valueId) ? current.filter((value) => value !== valueId) : [...current.filter((value) => !groupValueIds.includes(value)), valueId]);
+  };
+
+  const startFromFilters = () => {
+    if (!activeTemplate) return;
+    const template = filterableTemplates[activeTemplate];
+    setDraft({
+      question: template.question,
+      options: getFilteredStarterOptions(template, activeFilters),
+      mode: "fair",
+      filterLabels: getFilterLabels(template, activeFilters),
+    });
+    setScreen("editor");
+  };
+
+  const goBack = () => {
+    if (screen === "filters") setScreen("today");
+    else if (screen === "editor") setScreen(activeTemplate ? "filters" : "today");
+    else setScreen("editor");
+  };
 
   const recordsQuery = trpc.decision.list.useQuery(undefined, { enabled: isAuthenticated });
   const saveMutation = trpc.decision.save.useMutation({
@@ -113,6 +162,16 @@ export default function Home() {
   }, [screen, canDecide, validOptions, draft.mode, previousOptionId]);
 
   const beginNewDecision = (template?: (typeof templates)[number]) => {
+    if (template?.filterKey) {
+      setActiveTemplate(template.filterKey);
+      setActiveFilters([]);
+      setResult(null);
+      setRedraws(0);
+      setPreviousOptionId(undefined);
+      setScreen("filters");
+      return;
+    }
+    setActiveTemplate(null);
     setDraft(makeDraft(template));
     setResult(null);
     setRedraws(0);
@@ -172,15 +231,15 @@ export default function Home() {
     return <div className="grid min-h-screen place-items-center bg-[#f7f5f0]"><Loader2 className="h-5 w-5 animate-spin text-[#6955b3]" /></div>;
   }
 
-  const screenTitle = screen === "records" ? "记录" : screen === "editor" ? "做个决定" : screen === "result" ? "今天的答案" : "今天";
+  const screenTitle = screen === "records" ? "记录" : screen === "filters" ? "选一选" : screen === "editor" ? "做个决定" : screen === "result" ? "今天的答案" : "今天";
 
   return (
     <div className="min-h-screen bg-[#ebe8e2] text-[#293043] selection:bg-[#e4ddff] selection:text-[#443586]">
       <div className="relative mx-auto min-h-screen max-w-[520px] overflow-hidden bg-[#fbfaf7] shadow-[0_0_50px_rgba(38,45,63,0.12)] md:min-h-[900px] md:my-8 md:rounded-[34px]">
         <div className="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_20%_0%,rgba(243,234,204,0.7),transparent_45%),radial-gradient(circle_at_94%_14%,rgba(218,211,250,0.7),transparent_42%)]" />
         <header className="relative z-10 flex items-center justify-between px-6 pb-4 pt-7">
-          {screen === "editor" || screen === "result" || screen === "deciding" ? (
-            <button onClick={() => setScreen(screen === "editor" ? "today" : "editor")} className="grid h-10 w-10 place-items-center rounded-full bg-white/80 text-[#3c4659] shadow-[0_8px_20px_rgba(42,48,66,0.06)] transition active:scale-95" aria-label="返回">
+          {screen === "filters" || screen === "editor" || screen === "result" || screen === "deciding" ? (
+            <button onClick={goBack} className="grid h-10 w-10 place-items-center rounded-full bg-white/80 text-[#3c4659] shadow-[0_8px_20px_rgba(42,48,66,0.06)] transition active:scale-95" aria-label="返回">
               <ArrowLeft className="h-4 w-4" />
             </button>
           ) : (
@@ -194,13 +253,14 @@ export default function Home() {
               <button onClick={() => startLogin()} className="rounded-full bg-white/80 px-3.5 py-2 text-xs font-semibold text-[#564799] shadow-[0_8px_20px_rgba(42,48,66,0.06)] transition active:scale-95">登录同步</button>
             )}
             {isAuthenticated && <div title={user?.name ?? "已登录"} className="grid h-9 w-9 place-items-center rounded-full border border-white bg-[#ede9fb] text-xs font-bold text-[#5b499d]">{user?.name?.slice(0, 1).toUpperCase() ?? "我"}</div>}
-            {(screen === "editor" || screen === "result" || screen === "deciding") && <span className="text-sm font-semibold text-[#50596b]">{screenTitle}</span>}
+            {(screen === "filters" || screen === "editor" || screen === "result" || screen === "deciding") && <span className="text-sm font-semibold text-[#50596b]">{screenTitle}</span>}
           </div>
         </header>
 
         <main className="relative z-10 px-6 pb-28">
           <AnimatePresence mode="wait">
             {screen === "today" && <TodayScreen key="today" onTemplate={beginNewDecision} onNew={() => beginNewDecision()} recordsCount={recordsQuery.data?.length ?? 0} />}
+            {screen === "filters" && activeTemplate && <FilterScreen key="filters" template={filterableTemplates[activeTemplate]} activeFilters={activeFilters} onSelect={chooseFilterValue} onContinue={startFromFilters} />}
             {screen === "editor" && <EditorScreen key="editor" draft={draft} canDecide={canDecide} onChange={setDraft} onOptionChange={updateOption} onOptionRemove={removeOption} onStart={beginDecision} />}
             {screen === "deciding" && <DecidingScreen key="deciding" question={draft.question} options={validOptions} />}
             {screen === "result" && result && <ResultScreen key="result" decision={result} redraws={redraws} saving={saveMutation.isPending} onAccept={acceptDecision} onRedraw={redraw} onEdit={() => setScreen("editor")} />}
@@ -250,10 +310,16 @@ function TodayScreen({ onTemplate, onNew, recordsCount }: { onTemplate: (templat
   );
 }
 
+function FilterScreen({ template, activeFilters, onSelect, onContinue }: { template: (typeof filterableTemplates)[TemplateKey]; activeFilters: string[]; onSelect: (filterId: string, valueId: string) => void; onContinue: () => void }) {
+  const preview = getFilteredStarterOptions(template, activeFilters);
+  const selectedLabels = getFilterLabels(template, activeFilters);
+  return <motion.section initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.25 }}><div className="mt-6"><p className="text-sm font-medium text-[#747d8d]">先给今天一点方向</p><h1 className="mt-2 font-serif text-[30px] font-semibold tracking-[-0.05em] text-[#2d3548]">{template.question}</h1><p className="mt-3 max-w-[340px] text-sm leading-6 text-[#858c99]">挑选几个此刻在意的特点，我们会准备更贴近你的候选项。</p></div><div className="mt-8 space-y-7">{template.filters.map((filter) => <section key={filter.id}><h2 className="text-[15px] font-bold text-[#4f586b]">{filter.label}</h2><div className="mt-3 flex flex-wrap gap-2">{filter.values.map((value) => { const active = activeFilters.includes(value.id); return <button key={value.id} onClick={() => onSelect(filter.id, value.id)} className={`rounded-full px-3.5 py-2.5 text-[13px] font-semibold ring-1 transition active:scale-95 ${active ? "bg-[#6955b3] text-white ring-[#6955b3] shadow-[0_8px_16px_rgba(105,85,179,0.18)]" : "bg-white text-[#778090] ring-[#e7e3dc] hover:bg-[#f5f2ff] hover:text-[#6250a9]"}`}>{value.label}</button>; })}</div></section>)}</div><div className="mt-8 rounded-[22px] border border-[#e9e5dd] bg-[#f7f5f1] p-4"><div className="flex items-center justify-between"><span className="text-xs font-bold text-[#727b8b]">将为你准备</span><span className="text-xs font-semibold text-[#6754af]">{preview.length} 个候选</span></div><div className="mt-3 flex flex-wrap gap-1.5">{selectedLabels.length > 0 ? selectedLabels.map((label) => <span key={label} className="rounded-full bg-[#eae5fb] px-2.5 py-1 text-[11px] font-semibold text-[#6754ae]">{label}</span>) : <span className="text-xs text-[#969ca7]">不设限制，也可以直接开始。</span>}</div></div><button onClick={onContinue} className="mt-6 flex w-full items-center justify-center gap-2 rounded-[19px] bg-[#6955b3] py-4 text-[15px] font-bold text-white shadow-[0_14px_25px_rgba(105,85,179,0.25)] transition active:scale-[0.98]"><Sparkles className="h-4 w-4" />用这些特点开始</button></motion.section>;
+}
+
 function EditorScreen({ draft, canDecide, onChange, onOptionChange, onOptionRemove, onStart }: { draft: Draft; canDecide: boolean; onChange: (draft: Draft) => void; onOptionChange: (id: string, patch: Partial<ChoiceOption>) => void; onOptionRemove: (id: string) => void; onStart: () => void }) {
   const addOption = () => draft.options.length < 8 && onChange({ ...draft, options: [...draft.options, makeOption()] });
   return <motion.section initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.25 }}>
-    <div className="mt-6"><p className="text-sm font-medium text-[#747d8d]">第一步，写下此刻的犹豫</p><input autoFocus value={draft.question} onChange={(event) => onChange({ ...draft, question: event.target.value })} placeholder="例如：今天吃什么？" className="mt-3 w-full border-0 border-b border-[#ddd8cf] bg-transparent px-0 pb-3 font-serif text-[28px] font-semibold tracking-[-0.045em] text-[#2d3548] outline-none placeholder:text-[#c4c1bd] focus:border-[#8a78d0]" /></div>
+    <div className="mt-6"><p className="text-sm font-medium text-[#747d8d]">第一步，写下此刻的犹豫</p><input autoFocus value={draft.question} onChange={(event) => onChange({ ...draft, question: event.target.value })} placeholder="例如：今天吃什么？" className="mt-3 w-full border-0 border-b border-[#ddd8cf] bg-transparent px-0 pb-3 font-serif text-[28px] font-semibold tracking-[-0.045em] text-[#2d3548] outline-none placeholder:text-[#c4c1bd] focus:border-[#8a78d0]" />{draft.filterLabels && <div className="mt-3 flex flex-wrap gap-1.5">{draft.filterLabels.length > 0 ? draft.filterLabels.map((label) => <span key={label} className="rounded-full bg-[#eeeafd] px-2.5 py-1 text-[11px] font-semibold text-[#6754ae]">{label}</span>) : <span className="text-xs text-[#9aa0aa]">未设置筛选条件</span>}</div>}</div>
     <div className="mt-8"><div className="flex items-baseline justify-between"><h2 className="font-serif text-[20px] font-semibold tracking-[-0.03em]">候选项</h2><span className="text-xs text-[#9299a5]">{draft.options.length} / 8</span></div><p className="mt-1 text-xs text-[#939aa7]">至少两个选项，想法可以随时改变。</p>
       <div className="mt-4 space-y-3">{draft.options.map((option, index) => <OptionEditor key={option.id} option={option} index={index} canRemove={draft.options.length > 2} onChange={onOptionChange} onRemove={onOptionRemove} />)}</div>
       {draft.options.length < 8 && <button onClick={addOption} className="mt-3 flex items-center gap-2 rounded-full px-1 py-2 text-sm font-semibold text-[#6654ad] transition hover:text-[#4f3e95] active:scale-95"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#eeeafd]"><Plus className="h-3.5 w-3.5" /></span>再加一个选项</button>}

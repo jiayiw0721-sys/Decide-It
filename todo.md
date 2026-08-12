@@ -11,3 +11,8 @@
 - [x] Add or update Vitest coverage for decision probability selection and history-limit behavior.
 - [x] Verify the desktop and mobile interfaces, run type checks and tests, and save a delivery checkpoint.
 - [x] Add explicit focus-visible styling and complete a keyboard-accessibility review for custom controls.
+- [x] Define filter dimensions and curated starter choices for 吃什么、看什么、去哪里。
+- [x] Build a composable template filter screen that converts selected features into decision candidates.
+- [x] Preserve active filters and show them in the decision editor before random selection.
+- [x] Add unit tests and responsive UI verification for the template-filter decision flow.
+- [x] Visually verify the template → filter → editor path, including visible selected-filter labels.
