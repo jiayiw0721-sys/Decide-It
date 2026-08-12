@@ -1,4 +1,4 @@
-import { index, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { index, int, json, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -50,3 +50,58 @@ export const decisionRecords = mysqlTable(
 
 export type DecisionRecord = typeof decisionRecords.$inferSelect;
 export type InsertDecisionRecord = typeof decisionRecords.$inferInsert;
+
+export const sharedDecisions = mysqlTable(
+  "sharedDecisions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    shareCode: varchar("shareCode", { length: 16 }).notNull(),
+    creatorId: int("creatorId").notNull(),
+    question: varchar("question", { length: 240 }).notNull(),
+    options: json("options").$type<DecisionOption[]>().notNull(),
+    status: mysqlEnum("status", ["open", "resolved"]).default("open").notNull(),
+    finalOptionId: varchar("finalOptionId", { length: 80 }),
+    finalReason: text("finalReason"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    resolvedAt: timestamp("resolvedAt"),
+  },
+  (table) => [
+    uniqueIndex("sharedDecisions_shareCode_unique").on(table.shareCode),
+    index("sharedDecisions_creator_created_idx").on(table.creatorId, table.createdAt),
+  ]
+);
+
+export const decisionVotes = mysqlTable(
+  "decisionVotes",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    sharedDecisionId: int("sharedDecisionId").notNull(),
+    userId: int("userId").notNull(),
+    optionId: varchar("optionId", { length: 80 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("decisionVotes_session_user_unique").on(table.sharedDecisionId, table.userId),
+    index("decisionVotes_session_option_idx").on(table.sharedDecisionId, table.optionId),
+  ]
+);
+
+export const sharedDecisionMembers = mysqlTable(
+  "sharedDecisionMembers",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    sharedDecisionId: int("sharedDecisionId").notNull(),
+    userId: int("userId").notNull(),
+    role: mysqlEnum("role", ["creator", "member"]).default("member").notNull(),
+    joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("sharedDecisionMembers_session_user_unique").on(table.sharedDecisionId, table.userId),
+    index("sharedDecisionMembers_session_idx").on(table.sharedDecisionId),
+  ]
+);
+
+export type SharedDecision = typeof sharedDecisions.$inferSelect;
+export type DecisionVote = typeof decisionVotes.$inferSelect;
+export type SharedDecisionMember = typeof sharedDecisionMembers.$inferSelect;

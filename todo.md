@@ -16,3 +16,36 @@
 - [x] Preserve active filters and show them in the decision editor before random selection.
 - [x] Add unit tests and responsive UI verification for the template-filter decision flow.
 - [x] Visually verify the template → filter → editor path, including visible selected-filter labels.
+- [x] Define a shareable multi-person decision session with invitation, member preferences, vote status, and a fair tiebreak.
+- [x] Inspect available map and media-content data integrations before selecting a supported source strategy.
+- [x] Add persisted collaboration tables and protected procedures for sessions, members, votes, and final outcomes.
+- [x] Build an invitation and vote experience that resolves clear winners and randomly breaks tied outcomes.
+- [x] Connect the “去哪里” and “看什么” templates to concrete place and audiovisual candidates when supported data access is available.
+- [x] Add tests and responsive verification for collaborative voting and concrete-candidate selection.
+- [x] Replace per-mount Google Maps script injection with a singleton loader that reuses an existing API instance.
+- [x] Verify the place-discovery page can be opened repeatedly without duplicate Maps API console errors.
+- [x] Keep selected place candidates in a persistent preparation list across multiple searches.
+- [x] Allow any prepared place to be removed before creating a random or shared decision.
+- [x] Verify that multi-search place selection can accumulate at least two candidates without clearing earlier choices.
+- [x] Render clickable map markers for current place search results.
+- [x] Synchronize marker, result-list, and preparation-list selection states, including cancellation.
+- [x] Verify map-marker selection adds a place to the preparation list and can be undone.
+- [x] Add a visible Chinese/English language switcher to the app header.
+- [x] Translate the primary decision, voting, records, location, and media user-facing copy into English.
+- [x] Persist the selected language locally and verify it is restored on reload.
+- [x] Diagnose why clicked Google Maps markers do not update the prepared-place list in the live page.
+- [x] Replace the unreliable marker event binding with a verified clickable marker implementation.
+- [x] Verify a marker click adds and removes a real searched place from the preparation list.
+- [x] Replace the current advanced-marker event path with a native DOM click binding verified for the live Maps runtime.
+- [x] Add a visible map-overlay action so every mapped result remains addable even if a provider marker event is unavailable.
+- [x] Validate a searched location can be added from the map area and appears in the preparation list.
+- [x] Capture direct map clicks and resolve the clicked point or POI into a named place candidate.
+- [x] Show a confirmation card for the clicked map location and allow adding or dismissing it.
+- [x] Verify an arbitrary map click can add a detected location to the preparation list without a prior search.
+- [x] Diagnose why the map may remain blank on its first component mount.
+- [x] Make the map component wait for both script and container readiness, with a visible retry path on failure.
+- [x] Automatically retry short-lived first-load script failures before showing the manual retry action.
+- [x] Preload the shared Maps script at application startup so it is ready before the first place-page entry.
+- [x] Promote the Maps script to a single page-level deferred resource so the first map mount does not inject a new script.
+- [x] Use the page-level Maps callback and importLibrary readiness instead of relying on an incomplete global namespace check.
+- [x] Verify the map is visible on the first entry to the place-discovery page.

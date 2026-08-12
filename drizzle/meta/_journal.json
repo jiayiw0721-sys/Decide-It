@@ -15,6 +15,20 @@
       "when": 1786542881806,
       "tag": "0001_spicy_medusa",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786544882453,
+      "tag": "0002_dizzy_puppet_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786545373572,
+      "tag": "0003_faulty_luckman",
+      "breakpoints": true
     }
   ]
 }
