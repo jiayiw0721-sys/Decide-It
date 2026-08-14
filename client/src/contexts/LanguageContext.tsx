@@ -11,9 +11,9 @@ const messages = {
     yourDecisions: "你的决定", savedCount: "次已珍藏", decisionReflection: "每一次确认，都在帮你把时间留给真正重要的事。",
     food: "吃什么", watch: "看什么", place: "去哪里", doFirst: "先做什么",
     chooseLanguage: "语言", back: "返回", choose: "选一选", edit: "做个决定", answer: "今天的答案",
-    invite: "邀请大家", together: "一起决定", findPlace: "搜索地点", findMedia: "找部作品",
+    findPlace: "搜索地点", findMedia: "找部作品",
     templateStart: "用这些特点开始", mapSearch: "从地图搜索具体地点", realMedia: "浏览真实电影和电视剧",
-    voteWithFriends: "邀请大家投票", randomNow: "就这么定", fair: "公平随机", weighted: "偏好推荐",
+    randomNow: "就这么定", fair: "公平随机", weighted: "偏好推荐",
     candidates: "候选项", choice: "怎么选？", languageSaved: "语言偏好已保存",
   },
   en: {
@@ -24,9 +24,9 @@ const messages = {
     yourDecisions: "Your decisions", savedCount: " saved", decisionReflection: "Each choice leaves more time for what truly matters.",
     food: "What to eat", watch: "What to watch", place: "Where to go", doFirst: "What to do first",
     chooseLanguage: "Language", back: "Back", choose: "Refine", edit: "Make a choice", answer: "Today's answer",
-    invite: "Invite others", together: "Decide together", findPlace: "Find places", findMedia: "Find something to watch",
+    findPlace: "Find places", findMedia: "Find something to watch",
     templateStart: "Use these preferences", mapSearch: "Search real places on a map", realMedia: "Browse real movies & TV",
-    voteWithFriends: "Invite others to vote", randomNow: "Decide now", fair: "Fair random", weighted: "Preference-led",
+    randomNow: "Decide now", fair: "Fair random", weighted: "Preference-led",
     candidates: "Candidates", choice: "How should we choose?", languageSaved: "Language preference saved",
   },
 } as const;

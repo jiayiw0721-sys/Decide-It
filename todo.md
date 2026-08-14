@@ -49,3 +49,11 @@
 - [x] Promote the Maps script to a single page-level deferred resource so the first map mount does not inject a new script.
 - [x] Use the page-level Maps callback and importLibrary readiness instead of relying on an incomplete global namespace check.
 - [x] Verify the map is visible on the first entry to the place-discovery page.
+- [x] Remove the multi-person voting flow and all related entry points from the decision experience.
+- [x] Make core decision, history, and place-selection flows usable without signing in.
+- [x] Expand food recommendations with a dedicated regional-cuisine filter and diverse regional specialty dishes.
+- [x] Add and update unit tests plus mobile verification for the guest food decision flow.
+- [x] Remove remaining voting and invitation wording from place, media, and language UI copy.
+- [x] Re-verify the mobile single-user flow contains no vote-related labels or calls to action.
+- [x] Translate all filter labels, food candidates, and preference controls in English mode.
+- [x] Verify the English food decision journey on a mobile viewport and add focused translation test coverage.

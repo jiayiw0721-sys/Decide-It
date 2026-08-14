@@ -42,7 +42,13 @@ export function pickOption(
   return available[available.length - 1]!;
 }
 
-export function getDecisionReason(option: ChoiceOption, mode: DecisionMode): string {
+export function getDecisionReason(option: ChoiceOption, mode: DecisionMode, language: "zh" | "en" = "zh"): string {
+  if (language === "en") {
+    if (mode === "fair") return "Every option had the same chance, and today this one was picked.";
+    if (option.preference === "want") return "You marked it as a strong want, so today it gets a little extra weight.";
+    if (option.preference === "avoid") return "You were not leaning toward it today, but it still deserves a gentle second look.";
+    return "It fits the moment you are in, while still leaving room for a little surprise.";
+  }
   if (mode === "fair") return "它和其他选项有同样的机会，今天刚好轮到它。";
   if (option.preference === "want") return "你把它标为“很想”，今天就给它一个机会。";
   if (option.preference === "avoid") return "它被轻轻保留在候选中，但仍然值得今天重新看一眼。";
