@@ -1,6 +1,6 @@
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { decisionRecords, decisionVotes, InsertDecisionRecord, InsertUser, sharedDecisionMembers, sharedDecisions, users } from "../drizzle/schema";
+import { decisionRecords, InsertDecisionRecord, InsertUser, users } from "../drizzle/schema";
 import { MAX_DECISION_HISTORY } from "../shared/decision";
 import { ENV } from './_core/env';
 
@@ -107,48 +107,4 @@ export async function getRecentDecisionRecords(userId: number) {
     .where(eq(decisionRecords.userId, userId))
     .orderBy(desc(decisionRecords.createdAt), desc(decisionRecords.id))
     .limit(MAX_DECISION_HISTORY);
-}
-
-export async function createSharedDecision(input: typeof sharedDecisions.$inferInsert) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not available");
-  const result = await db.insert(sharedDecisions).values(input);
-  return Number(result[0].insertId);
-}
-
-export async function getSharedDecisionByCode(shareCode: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const rows = await db.select().from(sharedDecisions).where(eq(sharedDecisions.shareCode, shareCode)).limit(1);
-  return rows[0];
-}
-
-export async function getDecisionVotes(sharedDecisionId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(decisionVotes).where(eq(decisionVotes.sharedDecisionId, sharedDecisionId));
-}
-
-export async function addSharedDecisionMember(sharedDecisionId: number, userId: number, role: "creator" | "member" = "member") {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not available");
-  await db.insert(sharedDecisionMembers).values({ sharedDecisionId, userId, role }).onDuplicateKeyUpdate({ set: { role } });
-}
-
-export async function getSharedDecisionMembers(sharedDecisionId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(sharedDecisionMembers).where(eq(sharedDecisionMembers.sharedDecisionId, sharedDecisionId));
-}
-
-export async function castDecisionVote(sharedDecisionId: number, userId: number, optionId: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not available");
-  await db.insert(decisionVotes).values({ sharedDecisionId, userId, optionId }).onDuplicateKeyUpdate({ set: { optionId, updatedAt: new Date() } });
-}
-
-export async function resolveSharedDecision(sharedDecisionId: number, finalOptionId: string, finalReason: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not available");
-  await db.update(sharedDecisions).set({ status: "resolved", finalOptionId, finalReason, resolvedAt: new Date() }).where(eq(sharedDecisions.id, sharedDecisionId));
 }

@@ -71,3 +71,21 @@
 - [x] Ensure refreshed candidate groups avoid the immediately previous group when alternatives exist.
 - [x] Add unit tests and mobile verification for refreshing a template candidate group.
 - [x] Trigger the candidate refresh action in a mobile browser and verify options change while filters remain intact.
+- [x] Write an accurate English README covering features, setup, usage, privacy, and project structure.
+- [x] Validate README commands and references, then publish the documentation update.
+- [x] Verify README.md and LICENSE are ready to include in the documentation delivery checkpoint.
+- [x] Audit tracked source and template artifacts for remaining multi-person voting code, duplicate files, and unused modules.
+- [x] Remove only confirmed unreferenced collaboration remnants and redundant artifacts.
+- [x] Run regression tests and verify the single-user decision flow after repository cleanup.
+- [x] Interactively verify the post-cleanup mobile flow from template filters through result and local records.
+- [x] Repeat the post-cleanup single-user flow on an explicit 390×844 mobile viewport.
+- [x] Interactively repeat the complete post-cleanup flow at 390×844 through result and local records.
+- [x] Verify Drizzle migration history is complete so deleted collaboration tables cannot be recreated on a later deploy.
+- [x] Audit tracked GitHub publication files for large template snapshots, debug artifacts, and nonessential clutter.
+- [x] Remove only confirmed non-runtime template or debug artifacts while preserving necessary source and migration history.
+- [x] Improve repository structure guidance and validate the final GitHub-facing file set.
+- [x] Review the managed debug collector and document why it is retained or remove it from the published source.
+- [x] Validate the post-deletion GitHub-facing file set before publishing the cleaned repository version.
+- [ ] Audit recent GitHub-facing commit messages and remote branch state.
+- [ ] Prepare concise English commit-message replacements for the visible project history.
+- [ ] Rewrite and publish the selected commit-message history only after explicit confirmation.
