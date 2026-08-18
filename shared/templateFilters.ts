@@ -155,6 +155,29 @@ export function getFilteredStarterOptions(template: FilterableTemplate, selected
   return choices.slice(0, maximumChoices).map((candidate, index) => ({ id: `${template.key}-${index}-${candidate.label}`, label: candidate.label, preference: "neutral" }));
 }
 
+export function getRefreshedStarterOptions(
+  template: FilterableTemplate,
+  selectedValues: string[],
+  previousLabels: string[],
+): ChoiceOption[] {
+  const selected = selectedValues.filter(Boolean);
+  const exactMatches = template.candidates.filter((candidate) => selected.every((value) => candidate.tags.includes(value)));
+  const ranked = [...template.candidates].sort((a, b) => {
+    const score = (candidate: TemplateCandidate) => selected.filter((value) => candidate.tags.includes(value)).length;
+    return score(b) - score(a);
+  });
+  const maximumChoices = template.key === "food" ? 8 : 4;
+  const pool = exactMatches.length >= 2 ? exactMatches : ranked;
+  const alternativeCandidates = pool.filter((candidate) => !previousLabels.includes(candidate.label));
+  const refreshed = alternativeCandidates.slice(0, maximumChoices);
+
+  return refreshed.map((candidate, index) => ({
+    id: `${template.key}-refresh-${index}-${candidate.label}`,
+    label: candidate.label,
+    preference: "neutral",
+  }));
+}
+
 export function getFilterLabels(template: FilterableTemplate, selectedValues: string[]): string[] {
   return template.filters.flatMap((filter) => filter.values.filter((value) => selectedValues.includes(value.id)).map((value) => value.label));
 }

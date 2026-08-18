@@ -3,7 +3,7 @@ import { MediaFinder } from "@/components/MediaFinder";
 import { PlaceFinder } from "@/components/PlaceFinder";
 import { getDecisionReason, pickOption, type ChoiceOption, type DecisionMode, type Preference } from "@shared/decision";
 import { appendLocalDecision, type LocalDecisionRecord } from "@shared/localHistory";
-import { filterableTemplates, getFilteredStarterOptions, getFilterLabels, getLocalizedTemplate, localizeTemplateText, type TemplateKey } from "@shared/templateFilters";
+import { filterableTemplates, getFilteredStarterOptions, getFilterLabels, getLocalizedTemplate, getRefreshedStarterOptions, localizeTemplateText, type TemplateKey } from "@shared/templateFilters";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -20,6 +20,7 @@ import {
   MapPin,
   Play,
   Plus,
+  RefreshCw,
   RotateCcw,
   Sparkles,
   Star,
@@ -251,6 +252,20 @@ export default function Home() {
     }));
   };
 
+  const refreshTemplateCandidates = () => {
+    if (!activeTemplate) return;
+    const template = getLocalizedTemplate(filterableTemplates[activeTemplate], language);
+    const refreshed = getRefreshedStarterOptions(template, activeFilters, draft.options.map((option) => option.label));
+    if (refreshed.length < 2) {
+      toast.message(language === "en" ? "There are no other close matches. Try relaxing a filter." : "当前筛选下没有足够的新候选，可以放宽一个条件再试。", { icon: <Sparkles className="h-4 w-4" /> });
+      return;
+    }
+    setDraft((current) => ({ ...current, options: refreshed }));
+    setPreviousOptionId(undefined);
+    setResult(null);
+    toast.success(language === "en" ? "Here is a different group." : "为你换了一组新的候选。");
+  };
+
   const usePlaceCandidates = (candidates: ChoiceOption[]) => {
     setDraft((current) => ({ ...current, question: localizeTemplateText("今天去哪里？", language), options: candidates, filterLabels: [...(current.filterLabels ?? []), localizeTemplateText("真实地点", language)] }));
     setScreen("editor");
@@ -293,7 +308,7 @@ export default function Home() {
             {screen === "today" && <TodayScreen key="today" onTemplate={beginNewDecision} onNew={() => beginNewDecision()} recordsCount={records.length} />}
             {screen === "filters" && activeTemplate && <FilterScreen key="filters" template={filterableTemplates[activeTemplate]} activeFilters={activeFilters} onSelect={chooseFilterValue} onContinue={startFromFilters} onPlaceDiscovery={activeTemplate === "place" ? () => setScreen("placeFinder") : undefined} />}
             {screen === "filters" && activeTemplate === "watch" && <button key="media-discovery" onClick={() => setScreen("mediaFinder")} className="-mt-4 flex w-full items-center justify-center gap-2 rounded-[18px] border border-[#d9d1f3] bg-[#f7f4ff] py-3.5 text-sm font-bold text-[#6854af] transition active:scale-[0.98]"><Play className="h-4 w-4" />{t("realMedia")}</button>}
-            {screen === "editor" && <EditorScreen key="editor" draft={draft} canDecide={canDecide} onChange={setDraft} onOptionChange={updateOption} onOptionRemove={removeOption} onStart={beginDecision} />}
+            {screen === "editor" && <EditorScreen key="editor" draft={draft} canDecide={canDecide} onChange={setDraft} onOptionChange={updateOption} onOptionRemove={removeOption} onStart={beginDecision} onRefreshCandidates={activeTemplate ? refreshTemplateCandidates : undefined} />}
             {screen === "deciding" && <DecidingScreen key="deciding" question={draft.question} options={validOptions} />}
             {screen === "result" && result && <ResultScreen key="result" decision={result} redraws={redraws} onAccept={acceptDecision} onRedraw={redraw} onEdit={() => setScreen("editor")} />}
             {screen === "records" && <RecordsScreen key="records" records={records} onReuse={reuseRecord} />}
@@ -355,7 +370,7 @@ function FilterScreen({ template, activeFilters, onSelect, onContinue, onPlaceDi
   return <motion.section initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.25 }}><div className="mt-6"><p className="text-sm font-medium text-[#747d8d]">{english ? "Give today a little direction" : "先给今天一点方向"}</p><h1 className="mt-2 font-serif text-[30px] font-semibold tracking-[-0.05em] text-[#2d3548]">{localizedTemplate.question}</h1><p className="mt-3 max-w-[340px] text-sm leading-6 text-[#858c99]">{english ? "Choose what matters right now and we will prepare closer matches." : "挑选几个此刻在意的特点，我们会准备更贴近你的候选项。"}</p></div><div className="mt-8 space-y-7">{localizedTemplate.filters.map((filter) => <section key={filter.id}><h2 className="text-[15px] font-bold text-[#4f586b]">{filter.label}</h2><div className="mt-3 flex flex-wrap gap-2">{filter.values.map((value) => { const active = activeFilters.includes(value.id); return <button key={value.id} onClick={() => onSelect(filter.id, value.id)} className={`rounded-full px-3.5 py-2.5 text-[13px] font-semibold ring-1 transition active:scale-95 ${active ? "bg-[#6955b3] text-white ring-[#6955b3] shadow-[0_8px_16px_rgba(105,85,179,0.18)]" : "bg-white text-[#778090] ring-[#e7e3dc] hover:bg-[#f5f2ff] hover:text-[#6250a9]"}`}>{value.label}</button>; })}</div></section>)}</div>{onPlaceDiscovery && <button onClick={onPlaceDiscovery} className="mt-7 flex w-full items-center justify-center gap-2 rounded-[18px] border border-[#d9d1f3] bg-[#f7f4ff] py-3.5 text-sm font-bold text-[#6854af] transition active:scale-[0.98]"><MapPin className="h-4 w-4" />{t("mapSearch")}</button>}<div className="mt-8 rounded-[22px] border border-[#e9e5dd] bg-[#f7f5f1] p-4"><div className="flex items-center justify-between"><span className="text-xs font-bold text-[#727b8b]">{english ? "We will prepare" : "将为你准备"}</span><span className="text-xs font-semibold text-[#6754af]">{preview.length} {english ? "candidates" : "个候选"}</span></div><div className="mt-3 flex flex-wrap gap-1.5">{selectedLabels.length > 0 ? selectedLabels.map((label) => <span key={label} className="rounded-full bg-[#eae5fb] px-2.5 py-1 text-[11px] font-semibold text-[#6754ae]">{label}</span>) : <span className="text-xs text-[#969ca7]">{english ? "No limits needed — you can start now." : "不设限制，也可以直接开始。"}</span>}</div></div><button onClick={onContinue} className="mt-6 flex w-full items-center justify-center gap-2 rounded-[19px] bg-[#6955b3] py-4 text-[15px] font-bold text-white shadow-[0_14px_25px_rgba(105,85,179,0.25)] transition active:scale-[0.98]"><Sparkles className="h-4 w-4" />{t("templateStart")}</button></motion.section>;
 }
 
-function EditorScreen({ draft, canDecide, onChange, onOptionChange, onOptionRemove, onStart }: { draft: Draft; canDecide: boolean; onChange: (draft: Draft) => void; onOptionChange: (id: string, patch: Partial<ChoiceOption>) => void; onOptionRemove: (id: string) => void; onStart: () => void }) {
+function EditorScreen({ draft, canDecide, onChange, onOptionChange, onOptionRemove, onStart, onRefreshCandidates }: { draft: Draft; canDecide: boolean; onChange: (draft: Draft) => void; onOptionChange: (id: string, patch: Partial<ChoiceOption>) => void; onOptionRemove: (id: string) => void; onStart: () => void; onRefreshCandidates?: () => void }) {
   const { language, t } = useLanguage();
   const english = language === "en";
   const addOption = () => draft.options.length < 8 && onChange({ ...draft, options: [...draft.options, makeOption()] });
@@ -363,7 +378,7 @@ function EditorScreen({ draft, canDecide, onChange, onOptionChange, onOptionRemo
     <div className="mt-6"><p className="text-sm font-medium text-[#747d8d]">{english ? "Start by writing down the choice in front of you" : "第一步，写下此刻的犹豫"}</p><input autoFocus value={draft.question} onChange={(event) => onChange({ ...draft, question: event.target.value })} placeholder={english ? "For example: What should I eat today?" : "例如：今天吃什么？"} className="mt-3 w-full border-0 border-b border-[#ddd8cf] bg-transparent px-0 pb-3 font-serif text-[28px] font-semibold tracking-[-0.045em] text-[#2d3548] outline-none placeholder:text-[#c4c1bd] focus:border-[#8a78d0]" />{draft.filterLabels && <div className="mt-3 flex flex-wrap gap-1.5">{draft.filterLabels.length > 0 ? draft.filterLabels.map((label) => <span key={label} className="rounded-full bg-[#eeeafd] px-2.5 py-1 text-[11px] font-semibold text-[#6754ae]">{label}</span>) : <span className="text-xs text-[#9aa0aa]">{english ? "No filters selected" : "未设置筛选条件"}</span>}</div>}</div>
     <div className="mt-8"><div className="flex items-baseline justify-between"><h2 className="font-serif text-[20px] font-semibold tracking-[-0.03em]">{t("candidates")}</h2><span className="text-xs text-[#9299a5]">{draft.options.length} / 8</span></div><p className="mt-1 text-xs text-[#939aa7]">{english ? "Keep at least two options; you can change your mind anytime." : "至少两个选项，想法可以随时改变。"}</p>
       <div className="mt-4 space-y-3">{draft.options.map((option, index) => <OptionEditor key={option.id} option={option} index={index} canRemove={draft.options.length > 2} onChange={onOptionChange} onRemove={onOptionRemove} />)}</div>
-      {draft.options.length < 8 && <button onClick={addOption} className="mt-3 flex items-center gap-2 rounded-full px-1 py-2 text-sm font-semibold text-[#6654ad] transition hover:text-[#4f3e95] active:scale-95"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#eeeafd]"><Plus className="h-3.5 w-3.5" /></span>{english ? "Add another option" : "再加一个选项"}</button>}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">{draft.options.length < 8 && <button onClick={addOption} className="flex items-center gap-2 rounded-full px-1 py-2 text-sm font-semibold text-[#6654ad] transition hover:text-[#4f3e95] active:scale-95"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#eeeafd]"><Plus className="h-3.5 w-3.5" /></span>{english ? "Add another option" : "再加一个选项"}</button>}{onRefreshCandidates && <button onClick={onRefreshCandidates} className="flex items-center gap-1.5 rounded-full px-1 py-2 text-sm font-semibold text-[#8a6a38] transition hover:text-[#6d5126] active:scale-95"><RefreshCw className="h-3.5 w-3.5" />{english ? "None of these? Refresh this group" : "这组都不喜欢？换一组"}</button>}</div>
     </div>
     <div className="mt-8"><div className="flex items-baseline justify-between"><h2 className="font-serif text-[20px] font-semibold tracking-[-0.03em]">{t("choice")}</h2><span className="text-xs text-[#9299a5]">{english ? "Switch anytime" : "可随时切换"}</span></div><div className="mt-3 grid grid-cols-2 gap-2 rounded-[19px] bg-[#f1efeb] p-1.5">{(["fair", "weighted"] as DecisionMode[]).map((mode) => { const ModeIcon = modeCopy[mode].icon; const active = draft.mode === mode; const title = mode === "fair" ? t("fair") : t("weighted"); const description = english ? (mode === "fair" ? "Every option has the same chance" : "Gently weights your current preference") : modeCopy[mode].description; return <button key={mode} onClick={() => onChange({ ...draft, mode })} className={`rounded-[14px] px-3 py-3 text-left transition ${active ? "bg-white shadow-[0_6px_14px_rgba(49,53,71,0.08)]" : "text-[#838a96]"}`}><span className="flex items-center gap-1.5 text-xs font-bold"><ModeIcon className={`h-3.5 w-3.5 ${active ? "text-[#6955b3]" : ""}`} />{title}</span><span className="mt-1.5 block text-[11px] leading-4 text-[#8d94a0]">{description}</span></button>; })}</div></div>
     <button onClick={onStart} className={`mt-9 flex w-full items-center justify-center gap-2 rounded-[19px] py-4 text-[15px] font-bold transition active:scale-[0.98] ${canDecide ? "bg-[#6955b3] text-white shadow-[0_14px_25px_rgba(105,85,179,0.25)]" : "bg-[#e8e6e1] text-[#a1a5ad]"}`}><Sparkles className="h-4 w-4" />{t("randomNow")}</button>

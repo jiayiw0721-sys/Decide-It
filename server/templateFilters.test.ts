@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterableTemplates, getFilteredStarterOptions, getLocalizedTemplate, getFilterLabels } from "../shared/templateFilters";
+import { filterableTemplates, getFilteredStarterOptions, getLocalizedTemplate, getFilterLabels, getRefreshedStarterOptions } from "../shared/templateFilters";
 
 describe("template filter candidate generation", () => {
   it("returns food choices that meet a compatible selection", () => {
@@ -32,5 +32,12 @@ describe("template filter candidate generation", () => {
     expect(getFilterLabels(englishFood, ["sichuan"])).toEqual(["Sichuan & Chongqing"]);
     expect(labels).toContain("Chongqing noodles");
     expect(labels).toContain("Pickled mustard fish");
+  });
+
+  it("refreshes a template group without immediately repeating its previous candidates", () => {
+    const firstGroup = getFilteredStarterOptions(filterableTemplates.food, []);
+    const refreshedGroup = getRefreshedStarterOptions(filterableTemplates.food, [], firstGroup.map((item) => item.label));
+    expect(refreshedGroup.length).toBeGreaterThanOrEqual(2);
+    expect(refreshedGroup.some((item) => firstGroup.some((previous) => previous.label === item.label))).toBe(false);
   });
 });

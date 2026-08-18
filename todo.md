@@ -67,3 +67,7 @@
 - [x] Verify the final privacy-audit record is persisted in the GitHub export guide before publication.
 - [x] Diagnose and correct the Vite HMR WebSocket connection configuration for the managed preview domain.
 - [x] Restart the development server and verify the browser console no longer reports a Vite WebSocket failure.
+- [x] Add a “refresh this group” action for template-generated candidate lists while preserving filters.
+- [x] Ensure refreshed candidate groups avoid the immediately previous group when alternatives exist.
+- [x] Add unit tests and mobile verification for refreshing a template candidate group.
+- [x] Trigger the candidate refresh action in a mobile browser and verify options change while filters remain intact.
