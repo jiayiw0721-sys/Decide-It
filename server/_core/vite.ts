@@ -8,8 +8,12 @@ import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
+    ...viteConfig.server,
     middlewareMode: true,
-    hmr: { server },
+    // The managed preview is served through an HTTPS reverse proxy. Without a
+    // public client port, Vite embeds its middleware default (localhost:5173)
+    // into /@vite/client, which browsers outside the sandbox cannot reach.
+    hmr: { server, clientPort: 443 },
     allowedHosts: true as const,
   };
 

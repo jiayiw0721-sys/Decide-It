@@ -57,3 +57,13 @@
 - [x] Re-verify the mobile single-user flow contains no vote-related labels or calls to action.
 - [x] Translate all filter labels, food candidates, and preference controls in English mode.
 - [x] Verify the English food decision journey on a mobile viewport and add focused translation test coverage.
+- [x] Audit repository content for user data, credentials, and unsafe publish artifacts before GitHub export.
+- [x] Add a safe GitHub export guide recommending a private repository and documenting data protection boundaries.
+- [x] Review every file flagged by the privacy scan and sanitize any publish-unsafe content before export.
+- [x] Record the final repository privacy-audit findings in the GitHub export guide.
+- [x] Review each privacy-scan hit individually and record why it is safe to publish or sanitize it.
+- [x] Re-open the GitHub export guide and verify the complete audit record is present.
+- [x] Run and document a final repository-wide privacy scan before GitHub export.
+- [x] Verify the final privacy-audit record is persisted in the GitHub export guide before publication.
+- [x] Diagnose and correct the Vite HMR WebSocket connection configuration for the managed preview domain.
+- [x] Restart the development server and verify the browser console no longer reports a Vite WebSocket failure.
